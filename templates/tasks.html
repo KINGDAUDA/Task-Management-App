@@ -1,10 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
+{% block title %}My Tasks{% endblock %}
 
-</body>
-</html>
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">{{ current_user.username }}'s Tasks</h2>
+    <a href="{{ url_for('add_task') }}" class="btn btn-primary">+ New Task</a>
+</div>
+
+{% if tasks %}
+    <div class="table-responsive">
+        <table class="table table-hover align-middle bg-white">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Priority</th>
+                    <th>Date added</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td>{{ task.task }}</td>
+                    <td>
+                        {% if task.grade == 1 %}
+                            <span class="badge bg-danger">High</span>
+                        {% elif task.grade == 2 %}
+                            <span class="badge bg-warning text-dark">Moderate</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Low</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ task.date }}</td>
+                    <td class="text-end">
+                        <a href="{{ url_for('delete_task', task_id=task.id) }}"
+                           class="btn btn-sm btn-outline-danger"
+                           onclick="return confirm('Delete this task?');">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="text-center py-5 text-muted">
+        <p class="mb-3">You don't have any tasks yet.</p>
+        <a href="{{ url_for('add_task') }}" class="btn btn-primary">Add your first task</a>
+    </div>
+{% endif %}
+{% endblock %}
