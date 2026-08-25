@@ -1,13 +1,33 @@
+from dataclasses import field
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, SelectField
 from wtforms.fields.simple import PasswordField, EmailField
 from wtforms.validators import DataRequired, Email
+from email_validator import validate_email, EmailNotValidError
 
 
 def coerce_int(value):
     if isinstance(value, int):
         return value
     return value in (1, 2, 3)
+
+
+class RealEmail:
+    """
+    WTForms validator that checks the email is well-formed AND that its
+    domain actually exists and can receive mail (MX/A record lookup).
+    Rejects typos like 'gmial.com' or made-up domains, not just bad syntax.
+    """
+    def __init__(self, message=None):
+        self.message = message or "Please enter a real, deliverable email address."
+
+    def __call__(self, form, field):
+        from wtforms.validators import ValidationError
+        try:
+            # check_deliverability=True triggers the DNS MX/A record lookup
+            validate_email(field.data, check_deliverability=True)
+        except EmailNotValidError:
+            raise ValidationError(self.message)
 
 #WTForm for adding a new task
 class NewTask(FlaskForm):
@@ -20,7 +40,10 @@ class NewTask(FlaskForm):
 
 # Form for registering/sign-up as a new user
 class RegisterForm(FlaskForm):
-    email = EmailField("Email", validators=[DataRequired(), Email("Must be a valid email")])
+    email = EmailField("Email",
+                       validators=[DataRequired(),
+                                   Email("Must be a valid email"),
+                                   RealEmail()])
     name = StringField("Username", validators=[DataRequired()])
     password = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Sign me Up!")
