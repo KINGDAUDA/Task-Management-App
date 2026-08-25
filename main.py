@@ -130,6 +130,7 @@ def home():
     return render_template("index.html")
 
 @app.route("/tasks/<int:user_id>", methods=["GET"])
+@login_required
 def user_tasks(user_id):
     user = db.get_or_404(User, user_id)
     tasks = Task.query.filter_by(user_id=user_id).order_by(Task.id.desc()).all()
