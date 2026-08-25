@@ -86,7 +86,7 @@ def register():
             new_user = User(
                 email=form.email.data,
                 password=salted_password,
-                name=form.name.data
+                username=form.name.data
             )
             db.session.add(new_user)
             db.session.commit()
@@ -100,7 +100,7 @@ def register():
 def login():
     form = LoginForm()
     if form.validate_on_submit():
-        email = form.email.data,
+        email = form.email.data
         password = form.password.data
 
         try:
@@ -129,15 +129,10 @@ def logout():
 def home():
     return render_template("index.html")
 
-@app.route("/tasks/<int:user_id>", methods=["GET"])
+@app.route("/tasks", methods=["GET"])
 @login_required
-def user_tasks(user_id):
-    user = db.get_or_404(User, user_id)
-    tasks = Task.query.filter_by(user_id=user_id).order_by(Task.id.desc()).all()
-
-    if not current_user.is_authenticated:
-        return redirect(url_for("login"))
-
+def user_tasks():
+    tasks = Task.query.filter_by(user_id=current_user.id).order_by(Task.id.desc()).all()
     return render_template("tasks.html")
 
 @app.route("/new-task", methods=["GET", "POST"])
