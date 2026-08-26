@@ -47,14 +47,15 @@ class Base(DeclarativeBase):
 
 # DATABASE_URL set (e.g. My Supabase connection string in production) →
 # use it. Not set (local dev) → fall back to a local SQLite file.
-db_url = os.environ.get("DATABASE_URL", "sqlite:///tasks.db")
+db_url = os.environ.get('DATABASE_URL')
+if db_url and db_url.strip():
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tasks.db'
 
-# Some hosts/providers (Supabase included, historically) hand out URLs
-# starting with "postgres://", but SQLAlchemy 1.4+ requires "postgresql://".
-if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
-
-app.config["SQLALCHEMY_DATABASE_URI"] = db_url
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
