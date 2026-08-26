@@ -1,6 +1,7 @@
 import os
 from datetime import date
 
+from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, abort, flash
 from flask_bootstrap import Bootstrap5
 from flask_sqlalchemy import SQLAlchemy
@@ -16,6 +17,8 @@ from unicodedata import category
 from werkzeug.security import generate_password_hash, check_password_hash
 from forms import RegisterForm, LoginForm, NewTask
 
+# Load variables from .env when running locally.
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -42,7 +45,16 @@ def load_user(user_id):
 class Base(DeclarativeBase):
     pass
 
-app.config["SQLALCHEMY_DATABASE_URI"] = 'sqlite:///tasks.db'
+# DATABASE_URL set (e.g. My Supabase connection string in production) →
+# use it. Not set (local dev) → fall back to a local SQLite file.
+db_url = os.environ.get("DATABASE_URL", "sqlite:///tasks.db")
+
+# Some hosts/providers (Supabase included, historically) hand out URLs
+# starting with "postgres://", but SQLAlchemy 1.4+ requires "postgresql://".
+if db_url.startswith("postgres://"):
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 db = SQLAlchemy(model_class=Base)
 db.init_app(app)
 
@@ -140,6 +152,8 @@ def home():
 @app.route("/tasks", methods=["GET"])
 @login_required
 def user_tasks():
+    # current_user.id, never a URL parameter — otherwise any logged-in
+    # user could view someone else's tasks just by editing the URL.
     tasks = Task.query.filter_by(user_id=current_user.id).order_by(Task.id.desc()).all()
     return render_template("tasks.html", tasks=tasks)
 
@@ -164,7 +178,7 @@ def add_task():
 @login_required
 def delete_task(task_id):
     task_to_delete = db.get_or_404(Task, task_id)
-    # To make sure people can only delete their own tasks.
+    # Make sure people can only delete their own tasks.
     if task_to_delete.user_id != current_user.id:
         abort(403)
     db.session.delete(task_to_delete)
