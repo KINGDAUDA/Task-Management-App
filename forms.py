@@ -9,7 +9,7 @@ from email_validator import validate_email, EmailNotValidError
 def coerce_int(value):
     if isinstance(value, int):
         return value
-    return value in (1, 2, 3)
+    return int(value)
 
 
 class RealEmail:
@@ -33,7 +33,7 @@ class RealEmail:
 class NewTask(FlaskForm):
     task = StringField("Task Item", validators=[DataRequired()])
     grade = SelectField("What's the priority grade?",
-                        validators=[DataRequired()], validate_choice=True,
+                        validators=[DataRequired()],
                         choices=[(1, 'High'), (2, 'Moderate'), (3, 'Low')],
                         coerce=coerce_int)
     submit = SubmitField("Add task")
@@ -50,6 +50,6 @@ class RegisterForm(FlaskForm):
 
 # Form for logging in registered/existing users
 class LoginForm(FlaskForm):
-    email = EmailField("Username", validators=[DataRequired(), Email("Invalid email.")])
+    email = EmailField("Email", validators=[DataRequired(), Email("Invalid email.")])
     password = PasswordField("Password", validators=[DataRequired()])
     submit = SubmitField("Log in")
