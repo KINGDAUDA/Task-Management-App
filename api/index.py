@@ -1,11 +1,10 @@
-# api/index.py
 import sys
 import os
 
-# Ensure the root directory is on the Python path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+# Insert the project root directory at the very beginning of sys.path
+root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if root_dir not in sys.path:
+    sys.path.insert(0, root_dir)
 
-from app import app
-
-# Vercel needs the WSGI variable 'app'
-app = app
+# Import the Flask instance from app.py (change to 'main' if your file is main.py)
+from main import app
