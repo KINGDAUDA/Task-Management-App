@@ -12,6 +12,7 @@
         <table class="table table-hover align-middle bg-white">
             <thead>
                 <tr>
+                    <th style="width: 3rem;"></th>
                     <th>Task</th>
                     <th>Priority</th>
                     <th>Date added</th>
@@ -21,7 +22,11 @@
             <tbody>
                 {% for task in tasks %}
                 <tr>
-                    <td>{{ task.task }}</td>
+                    <td>
+                        <input class="form-check-input task-complete-checkbox" type="checkbox"
+                               data-task-id="{{ task.id }}" aria-label="Mark task done">
+                    </td>
+                    <td><span class="task-text">{{ task.task }}</span></td>
                     <td>
                         {% if task.grade == 1 %}
                             <span class="badge bg-danger">High</span>
@@ -33,9 +38,11 @@
                     </td>
                     <td>{{ task.date }}</td>
                     <td class="text-end">
-                        <a href="{{ url_for('delete_task', task_id=task.id) }}"
-                           class="btn btn-sm btn-outline-danger"
-                           onclick="return confirm('Delete this task?');">Delete</a>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                data-bs-toggle="modal" data-bs-target="#deleteModal"
+                                data-task-id="{{ task.id }}" data-task-name="{{ task.task }}">
+                            Delete
+                        </button>
                     </td>
                 </tr>
                 {% endfor %}
@@ -48,4 +55,68 @@
         <a href="{{ url_for('add_task') }}" class="btn btn-primary">Add your first task</a>
     </div>
 {% endif %}
+
+<!-- Shared delete-confirmation modal, reused for every row -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">Delete task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to delete "<strong id="deleteTaskName"></strong>"?
+                This can't be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a id="deleteConfirmBtn" href="#" class="btn btn-danger">Delete</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Fill in the shared modal with the row's task name + delete link
+    // right before it's shown, based on which button triggered it.
+    document.getElementById('deleteModal').addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const taskId = button.getAttribute('data-task-id');
+        const taskName = button.getAttribute('data-task-name');
+        document.getElementById('deleteTaskName').textContent = taskName;
+        document.getElementById('deleteConfirmBtn').href = "/delete/" + taskId;
+    });
+
+    // Checking a task's box strikes it through immediately and deletes it
+    // on the server in the background. The row stays visible (struck
+    // through) until the page is next loaded/refreshed.
+    document.querySelectorAll('.task-complete-checkbox').forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+            if (!this.checked) return;
+
+            const taskId = this.getAttribute('data-task-id');
+            const row = this.closest('tr');
+            const taskText = row.querySelector('.task-text');
+
+            taskText.classList.add('task-struck');
+            this.disabled = true;
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+            fetch("/complete/" + taskId, {
+                method: "POST",
+                headers: { "X-CSRFToken": csrfToken }
+            })
+                .then(function (response) {
+                    if (!response.ok) throw new Error("Request failed");
+                })
+                .catch(function () {
+                    // Revert if the request failed, so the UI doesn't lie.
+                    taskText.classList.remove('task-struck');
+                    checkbox.checked = false;
+                    checkbox.disabled = false;
+                });
+        });
+    });
+</script>
 {% endblock %}

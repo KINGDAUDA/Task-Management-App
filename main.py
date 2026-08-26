@@ -5,6 +5,7 @@ from flask import Flask, render_template, redirect, url_for, abort, flash
 from flask_bootstrap import Bootstrap5
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, login_user, LoginManager, current_user, logout_user, login_required
+from flask_wtf.csrf import CSRFProtect, CSRFError
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy import Integer, String, ForeignKey
 from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
@@ -20,9 +21,16 @@ app = Flask(__name__)
 
 app.config['SECRET_KEY'] = os.environ.get("SECRET_KEY", "local-dev-key")
 bootstrap = Bootstrap5(app)
+csrf = CSRFProtect(app)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
+
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    flash("Your session expired or the request looked suspicious — please try again.", category="error")
+    return redirect(url_for("home"))
 
 
 @login_manager.user_loader
@@ -133,7 +141,7 @@ def home():
 @login_required
 def user_tasks():
     tasks = Task.query.filter_by(user_id=current_user.id).order_by(Task.id.desc()).all()
-    return render_template("tasks.html")
+    return render_template("tasks.html", tasks=tasks)
 
 @app.route("/new-task", methods=["GET", "POST"])
 @login_required
@@ -156,9 +164,26 @@ def add_task():
 @login_required
 def delete_task(task_id):
     task_to_delete = db.get_or_404(Task, task_id)
+    # To make sure people can only delete their own tasks.
+    if task_to_delete.user_id != current_user.id:
+        abort(403)
     db.session.delete(task_to_delete)
     db.session.commit()
     return redirect(url_for('user_tasks'))
+
+
+# Called via fetch() when a task's checkbox is ticked. Deletes the task
+# quietly in the background — the row itself stays visible (struck through)
+# until the next page load/refresh, per the UX in tasks.html.
+@app.route("/complete/<int:task_id>", methods=["POST"])
+@login_required
+def complete_task(task_id):
+    task_to_complete = db.get_or_404(Task, task_id)
+    if task_to_complete.user_id != current_user.id:
+        abort(403)
+    db.session.delete(task_to_complete)
+    db.session.commit()
+    return "", 204
 
 
 if __name__ == "__main__":

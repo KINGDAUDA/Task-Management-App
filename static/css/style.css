@@ -37,3 +37,17 @@ body {
     background-color: #4338ca;
     border-color: #4338ca;
 }
+
+.task-text {
+    transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+.task-struck {
+    text-decoration: line-through;
+    color: #9ca3af;
+    opacity: 0.7;
+}
+
+.task-complete-checkbox {
+    cursor: pointer;
+}
