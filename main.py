@@ -1,5 +1,5 @@
 import os
-from datetime import date
+from datetime import date, datetime, time, timedelta
 
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for, abort, flash
@@ -8,7 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin, login_user, LoginManager, current_user, logout_user, login_required
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy import Integer, String, ForeignKey
+from sqlalchemy import Integer, String, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import relationship, DeclarativeBase, Mapped, mapped_column
 from functools import wraps
 from typing import List
@@ -74,9 +74,13 @@ class Task(db.Model):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     task: Mapped[str] = mapped_column(String(250), nullable=False)
     grade: Mapped[int] = mapped_column(Integer, nullable=False)
-    date: Mapped[str] = mapped_column(String(250), nullable=False)
+    time: Mapped[str] = mapped_column(String(250), nullable=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("Users.id"))
     task_owner: Mapped["User"] = relationship(back_populates="user_task")
+    is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[DateTime] = mapped_column(DateTime, default=datetime.now)
+
 
 
 with app.app_context():
@@ -153,10 +157,20 @@ def home():
 @app.route("/tasks", methods=["GET"])
 @login_required
 def user_tasks():
-    # current_user.id, never a URL parameter — otherwise any logged-in
-    # user could view someone else's tasks just by editing the URL.
-    tasks = Task.query.filter_by(user_id=current_user.id).order_by(Task.id.desc()).all()
-    return render_template("tasks.html", tasks=tasks)
+    now = datetime.now()
+    cutoff = datetime.combine(now.date(), time(4, 0))
+    if now < cutoff:
+        cutoff -= timedelta(days=1)
+    #Archive/Cleaning up tasks created prior to the 4:00 AM cut off
+    Task.query.filter(
+        Task.user_id == current_user.id,
+        Task.is_archived == False,
+        Task.created_at < cutoff
+    ).update({'is_archived': True})
+    db.session.commit()
+
+    active_tasks = Task.query.filter_by(user_id=current_user.id, is_archived=False).order_by(Task.id.desc()).all()
+    return render_template("tasks.html", tasks=active_tasks)
 
 @app.route("/new-task", methods=["GET", "POST"])
 @login_required
@@ -167,7 +181,8 @@ def add_task():
             task=form.task.data,
             grade=form.grade.data,
             task_owner=current_user,
-            date=date.today().strftime("%B %d, %Y")
+            time=form.time.data,
+            user_id=current_user.id
         )
         db.session.add(new_task)
         db.session.commit()

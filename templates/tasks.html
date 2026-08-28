@@ -15,7 +15,7 @@
                     <th style="width: 3rem;"></th>
                     <th>Task</th>
                     <th>Priority</th>
-                    <th>Date added</th>
+                    <th>Time</th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
@@ -36,7 +36,7 @@
                             <span class="badge bg-secondary">Low</span>
                         {% endif %}
                     </td>
-                    <td>{{ task.date }}</td>
+                    <td>{{ task.time }}</td>
                     <td class="text-end">
                         <button type="button" class="btn btn-sm btn-outline-danger"
                                 data-bs-toggle="modal" data-bs-target="#deleteModal"
