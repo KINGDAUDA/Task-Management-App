@@ -61,7 +61,7 @@ db.init_app(app)
 
 # User table for all registered Users
 class User(UserMixin, db.Model):
-    __tablename__ = "Users"
+    __tablename__ = "users"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String(250), unique=True, nullable=False)
     username: Mapped[str] = mapped_column(String(250), nullable=False)
@@ -70,12 +70,12 @@ class User(UserMixin, db.Model):
 
 
 class Task(db.Model):
-    __tablename__ = "Tasks"
+    __tablename__ = "tasks"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     task: Mapped[str] = mapped_column(String(250), nullable=False)
     grade: Mapped[int] = mapped_column(Integer, nullable=False)
     time: Mapped[str] = mapped_column(String(250), nullable=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("Users.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     task_owner: Mapped["User"] = relationship(back_populates="user_task")
     is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
