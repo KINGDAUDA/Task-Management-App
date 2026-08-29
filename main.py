@@ -77,7 +77,7 @@ class Task(db.Model):
     time: Mapped[str] = mapped_column(String(250), nullable=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     task_owner: Mapped["User"] = relationship(back_populates="user_task")
-    is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # is_completed: Mapped[bool] = mapped_column(Boolean, default=False)
     is_archived: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime, default=datetime.now)
 
